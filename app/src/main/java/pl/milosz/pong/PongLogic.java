@@ -6,10 +6,9 @@ import android.graphics.Paint;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
-import android.os.SystemClock;
 import android.util.Log;
-import android.view.MotionEvent;
 import android.view.SurfaceHolder;
+
 import pl.milosz.pong.gameObjects.Ball;
 import pl.milosz.pong.gameObjects.Pad;
 
@@ -19,21 +18,19 @@ public class PongLogic extends Thread {
     private Pad player2;
     private Ball ball;
     private Paint layoutPaint;
-    private int canvasHeight;
-    private int canvasWidth;
+    public static int canvasHeight;
+    public static int canvasWidth;
     private final SurfaceHolder surface;
     private final Handler scoreHandler;
 
     public PongLogic(final SurfaceHolder surfaceHolder,
-               final Handler scoreHandler) {
+                     final Handler scoreHandler) {
         surface = surfaceHolder;
         this.scoreHandler = scoreHandler;
 
         int paddleHeight = 350;
         int paddleWidth = 125;
         int ballRadius = 25;
-        canvasHeight = 1;
-        canvasWidth = 1;
 
         // player 1
         Paint player1Paint = new Paint();
@@ -61,68 +58,67 @@ public class PongLogic extends Thread {
         layoutPaint.setStrokeWidth(2.0f);
     }
 
+    private void drawLayout(Canvas canvas) {
+        canvas.drawColor(Color.BLACK);
+        canvas.drawRect(0, 0, canvasWidth, canvasHeight, layoutPaint);
+        canvas.drawLine(canvasWidth / 2, 1, canvasWidth / 2, canvasHeight, layoutPaint);
+        setScoreText(player1.score + "    " + player2.score);
+
+        canvas.drawRoundRect(player1.size, 5, 5, player1.paint);
+        canvas.drawRoundRect(player2.size, 5, 5, player2.paint);
+        canvas.drawCircle(ball.cx, ball.cy, ball.radius, ball.paint);
+    }
+
+    private void reset() {
+        ball.cx = canvasWidth / 2;
+        ball.cy = canvasHeight / 2;
+        ball.dx = -10;
+        ball.dy = 0;
+        movePlayer(player1, 2, (canvasHeight - player1.paddleHeight) / 2);
+        movePlayer(player2, canvasWidth - player2.paddleWidth - 2, (canvasHeight - player2.paddleHeight) / 2);
+    }
+
     @Override
     public void run() {
-        long tick = SystemClock.uptimeMillis();
-        int skipTicks = 1000 / 60;
+        reset();
         while (runBoolean) {
             Canvas canvas = null;
             try {
                 canvas = surface.lockCanvas(null);
                 if (canvas != null) {
-                    synchronized (surface) {
-                        updatePlayers();
-                        updateDisplay(canvas);
-                    }
+                    updatePlayers();
+                    drawLayout(canvas);
                 }
-            } catch (Exception e){
-              Log.i("Error", e.getMessage());
+            } catch (Exception e) {
+                Log.i("Error", e.getMessage());
             } finally {
                 if (canvas != null) {
                     surface.unlockCanvasAndPost(canvas);
                 }
             }
-            tick += skipTicks;
-            long sleepTime = tick - SystemClock.uptimeMillis();
-            if (sleepTime > 0) {
-                try {
-                    Thread.sleep(sleepTime);
-                } catch (InterruptedException e) {
-                    Log.e("Error",e.getMessage());
-                }
-            }
         }
     }
 
-    public boolean Player1Touch(MotionEvent event) {
-        return player1.size.contains(event.getX(), event.getY());
-    }
-
-    public boolean Player2Touch(MotionEvent event) {
-        return player2.size.contains(event.getX(), event.getY());
+    private void movePlayer(Pad player, float left, float top) {
+        if (left < 2) {
+            left = 2;
+        } else if (left + player.paddleWidth >= canvasWidth - 2) {
+            left = canvasWidth - player.paddleWidth - 2;
+        }
+        if (top < 0) {
+            top = 0;
+        } else if (top + player.paddleHeight >= canvasHeight) {
+            top = canvasHeight - player.paddleHeight - 1;
+        }
+        player.size.offsetTo(left, top);
     }
 
     public void movePlayer1(float dy) {
-        synchronized (surface) {
-            movePlayer(player1,
-                    player1.size.left,
-                    player1.size.top + dy);
-        }
+        movePlayer(player1, player1.size.left, player1.size.top + dy);
     }
 
     public void movePlayer2(float dy) {
-        synchronized (surface) {
-            movePlayer(player2,
-                    player2.size.left,
-                    player2.size.top + dy);
-        }
-    }
-    public void setSurfaceSize(int width, int height) {
-        synchronized (surface) {
-            canvasWidth = width;
-            canvasHeight = height;
-            reset();
-        }
+        movePlayer(player2, player2.size.left, player2.size.top + dy);
     }
 
     private void updatePlayers() {
@@ -133,6 +129,7 @@ public class PongLogic extends Thread {
             player2.collision--;
         }
 
+        // check collision
         if (collision(player1, ball)) {
             handleCollision(player1, ball);
             player1.collision = 5;
@@ -152,10 +149,7 @@ public class PongLogic extends Thread {
             return;
         }
 
-        moveBall();
-    }
-
-    private void moveBall() {
+        // ball
         ball.cx += ball.dx;
         ball.cy += ball.dy;
 
@@ -164,54 +158,6 @@ public class PongLogic extends Thread {
         } else if (ball.cy + ball.radius >= canvasHeight) {
             ball.cy = canvasHeight - ball.radius - 1;
         }
-    }
-
-    private void updateDisplay(Canvas canvas) {
-        canvas.drawColor(Color.BLACK);
-        canvas.drawRect(0, 0, canvasWidth, canvasHeight, layoutPaint);
-        canvas.drawLine(canvasWidth/2, 1, canvasWidth/2, canvasHeight, layoutPaint);
-        setScoreText(player1.score + "    " + player2.score);
-
-        canvas.drawRoundRect(player1.size, 5, 5, player1.paint);
-        canvas.drawRoundRect(player2.size, 5, 5, player2.paint);
-        canvas.drawCircle(ball.cx, ball.cy, ball.radius, ball.paint);
-    }
-
-    private void reset() {
-        ball.cx = canvasWidth / 2;
-        ball.cy = canvasHeight / 2;
-        ball.dx = -10;
-        ball.dy = 0;
-
-        movePlayer(player1,
-                2,
-                (canvasHeight - player1.paddleHeight) / 2);
-
-        movePlayer(player2,
-                canvasWidth - player2.paddleWidth - 2,
-                (canvasHeight - player2.paddleHeight) / 2);
-    }
-
-    private void setScoreText(String text) {
-        Message msg = scoreHandler.obtainMessage();
-        Bundle b = new Bundle();
-        b.putString("score", text);
-        msg.setData(b);
-        scoreHandler.sendMessage(msg);
-    }
-
-    private void movePlayer(Pad player, float left, float top) {
-        if (left < 2) {
-            left = 2;
-        } else if (left + player.paddleWidth >= canvasWidth - 2) {
-            left = canvasWidth - player.paddleWidth - 2;
-        }
-        if (top < 0) {
-            top = 0;
-        } else if (top + player.paddleHeight >= canvasHeight) {
-            top = canvasHeight - player.paddleHeight - 1;
-        }
-        player.size.offsetTo(left, top);
     }
 
     private boolean collision(Pad player, Ball ball) {
@@ -237,4 +183,11 @@ public class PongLogic extends Thread {
         }
     }
 
+    private void setScoreText(String text) {
+        Message msg = scoreHandler.obtainMessage();
+        Bundle b = new Bundle();
+        b.putString("score", text);
+        msg.setData(b);
+        scoreHandler.sendMessage(msg);
+    }
 }
