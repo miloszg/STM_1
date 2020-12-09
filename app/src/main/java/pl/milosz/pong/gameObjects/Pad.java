@@ -10,7 +10,6 @@ public class Pad {
     public RectF size;
     public Paint paint;
     public int score;
-
     public int collision;
 
     public Pad(int paddleWidth, int paddleHeight, Paint paint) {

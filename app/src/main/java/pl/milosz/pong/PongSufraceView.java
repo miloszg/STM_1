@@ -1,20 +1,16 @@
 package pl.milosz.pong;
 
 import android.content.Context;
-import android.os.Handler;
-import android.os.Message;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
-import android.widget.TextView;
 
 import static pl.milosz.pong.PongLogic.canvasHeight;
 import static pl.milosz.pong.PongLogic.canvasWidth;
 
 public class PongSufraceView extends SurfaceView implements SurfaceHolder.Callback {
     private PongLogic pongLogic;
-    private TextView scoreView;
     private float lastPlayer1 = 0;
     private float lastPlayer2 = 0;
 
@@ -27,20 +23,13 @@ public class PongSufraceView extends SurfaceView implements SurfaceHolder.Callba
         SurfaceHolder holder = getHolder();
         holder.addCallback(this);
 
-        pongLogic = new PongLogic(holder,
-                new Handler() {
-                    @Override
-                    public void handleMessage(Message m) {
-                        scoreView.setText(m.getData().getString("score"));
-                    }
-                }
-        );
+        pongLogic = new PongLogic(holder);
     }
 
     @Override
     public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-        pongLogic.canvasWidth=width;
-        pongLogic.canvasHeight=height;
+        pongLogic.canvasWidth = width;
+        pongLogic.canvasHeight = height;
     }
 
     @Override
@@ -59,33 +48,28 @@ public class PongSufraceView extends SurfaceView implements SurfaceHolder.Callba
             case MotionEvent.ACTION_DOWN:
                 if (!pongLogic.runBoolean) {
                     pongLogic.runBoolean = true;
-                }
-                 else {
+                } else {
                     if (event.getX(activePointer) < canvasHeight && event.getY(activePointer) < canvasWidth / 2) {
-                        player1Pointer=event.getPointerId(activePointer);
+                        player1Pointer = event.getPointerId(activePointer);
                         lastPlayer1 = event.getY(activePointer);
                     } else {
-                        player2Pointer=event.getPointerId(activePointer);
+                        player2Pointer = event.getPointerId(activePointer);
                         lastPlayer2 = event.getY();
                     }
                 }
                 break;
             case MotionEvent.ACTION_MOVE:
                 if (pongLogic.runBoolean) {
-                    if(event.getX(player1Pointer) < canvasHeight && event.getY(player1Pointer) <canvasWidth/2){
+                    if (event.getX(player1Pointer) < canvasHeight && event.getY(player1Pointer) < canvasWidth / 2) {
                         pongLogic.movePlayer1(event.getY(player1Pointer) - lastPlayer1);
-                        lastPlayer1=event.getY();
+                        lastPlayer1 = event.getY();
                     } else {
                         pongLogic.movePlayer2(event.getY(player2Pointer) - lastPlayer2);
-                        lastPlayer2=event.getY();
+                        lastPlayer2 = event.getY();
                     }
                 }
                 break;
         }
         return true;
-    }
-
-    public void setScoreView(TextView textView) {
-        scoreView = textView;
     }
 }

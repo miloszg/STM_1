@@ -3,9 +3,6 @@ package pl.milosz.pong;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.os.Bundle;
-import android.os.Handler;
-import android.os.Message;
 import android.util.Log;
 import android.view.SurfaceHolder;
 
@@ -18,15 +15,13 @@ public class PongLogic extends Thread {
     private Pad player2;
     private Ball ball;
     private Paint layoutPaint;
+    private Paint textPaint;
     public static int canvasHeight;
     public static int canvasWidth;
     private final SurfaceHolder surface;
-    private final Handler scoreHandler;
 
-    public PongLogic(final SurfaceHolder surfaceHolder,
-                     final Handler scoreHandler) {
+    public PongLogic(final SurfaceHolder surfaceHolder) {
         surface = surfaceHolder;
-        this.scoreHandler = scoreHandler;
 
         int paddleHeight = 350;
         int paddleWidth = 125;
@@ -56,17 +51,23 @@ public class PongLogic extends Thread {
         layoutPaint.setColor(Color.WHITE);
         layoutPaint.setStyle(Paint.Style.STROKE);
         layoutPaint.setStrokeWidth(2.0f);
+
+        // score
+        textPaint = new Paint();
+        textPaint.setColor(Color.WHITE);
+        textPaint.setStyle(Paint.Style.FILL);
+        textPaint.setTextSize(100);
+        textPaint.setTextAlign(Paint.Align.CENTER);
     }
 
     private void drawLayout(Canvas canvas) {
         canvas.drawColor(Color.BLACK);
         canvas.drawRect(0, 0, canvasWidth, canvasHeight, layoutPaint);
         canvas.drawLine(canvasWidth / 2, 1, canvasWidth / 2, canvasHeight, layoutPaint);
-        setScoreText(player1.score + "    " + player2.score);
-
+        canvas.drawText(player1.score + "    " + player2.score, canvasWidth/2, 150, textPaint);
         canvas.drawRoundRect(player1.size, 5, 5, player1.paint);
         canvas.drawRoundRect(player2.size, 5, 5, player2.paint);
-        canvas.drawCircle(ball.cx, ball.cy, ball.radius, ball.paint);
+        canvas.drawCircle(ball.cx, ball.cy, ball.r, ball.paint);
     }
 
     private void reset() {
@@ -136,14 +137,14 @@ public class PongLogic extends Thread {
         } else if (collision(player2, ball)) {
             handleCollision(player2, ball);
             player2.collision = 5;
-        } else if (ball.cy <= ball.radius
-                || ball.cy + ball.radius >= canvasHeight - 1) {
+        } else if (ball.cy <= ball.r
+                || ball.cy + ball.r >= canvasHeight - 1) {
             ball.dy = -ball.dy;
-        } else if (ball.cx + ball.radius >= canvasWidth - 1) {
+        } else if (ball.cx + ball.r >= canvasWidth - 1) {
             player1.score++;
             reset();
             return;
-        } else if (ball.cx <= ball.radius) {
+        } else if (ball.cx <= ball.r) {
             player2.score++;
             reset();
             return;
@@ -153,19 +154,19 @@ public class PongLogic extends Thread {
         ball.cx += ball.dx;
         ball.cy += ball.dy;
 
-        if (ball.cy < ball.radius) {
-            ball.cy = ball.radius;
-        } else if (ball.cy + ball.radius >= canvasHeight) {
-            ball.cy = canvasHeight - ball.radius - 1;
+        if (ball.cy < ball.r) {
+            ball.cy = ball.r;
+        } else if (ball.cy + ball.r >= canvasHeight) {
+            ball.cy = canvasHeight - ball.r - 1;
         }
     }
 
     private boolean collision(Pad player, Ball ball) {
         return player.size.intersects(
-                ball.cx - this.ball.radius,
-                ball.cy - this.ball.radius,
-                ball.cx + this.ball.radius,
-                ball.cy + this.ball.radius);
+                ball.cx - this.ball.r,
+                ball.cy - this.ball.r,
+                ball.cx + this.ball.r,
+                ball.cy + this.ball.r);
     }
 
     private void handleCollision(Pad player, Ball ball) {
@@ -177,17 +178,9 @@ public class PongLogic extends Thread {
         ball.dy = (float) (10 * -Math.sin(bounceAngle));
 
         if (player == player1) {
-            this.ball.cx = player1.size.right + this.ball.radius;
+            this.ball.cx = player1.size.right + this.ball.r;
         } else {
-            this.ball.cx = player2.size.left - this.ball.radius;
+            this.ball.cx = player2.size.left - this.ball.r;
         }
-    }
-
-    private void setScoreText(String text) {
-        Message msg = scoreHandler.obtainMessage();
-        Bundle b = new Bundle();
-        b.putString("score", text);
-        msg.setData(b);
-        scoreHandler.sendMessage(msg);
     }
 }
